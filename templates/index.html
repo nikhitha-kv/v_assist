@@ -1,0 +1,409 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VeeAssist - Complete System</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #1a1a2e;
+            color: white;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 100%;
+            width: 100%;
+            background: #16213e;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #0f3460 0%, #16213e 100%);
+            color: white;
+            padding: 20px;
+            text-align: center;
+            border-bottom: 3px solid #e94560;
+        }
+
+        .header h1 {
+            font-size: 1.8em;
+            margin-bottom: 5px;
+        }
+
+        .header p {
+            font-size: 0.9em;
+            opacity: 0.8;
+        }
+
+        .video-container {
+            position: relative;
+            width: 100%;
+            background: black;
+        }
+
+        #video-feed {
+            width: 100%;
+            height: auto;
+            display: block;
+        }
+
+        .narration-box {
+            background: #0f3460;
+            padding: 20px;
+            text-align: center;
+            border-top: 2px solid #e94560;
+        }
+
+        .narration-text {
+            font-size: 1.2em;
+            font-weight: 600;
+            color: #f1f1f1;
+            margin-bottom: 15px;
+            min-height: 60px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .controls {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            padding: 15px;
+            background: #0f3460;
+        }
+
+        .btn {
+            padding: 15px;
+            border: none;
+            border-radius: 8px;
+            font-size: 1em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .btn-voice-toggle {
+            background: #27ae60;
+            color: white;
+            grid-column: 1 / -1;
+        }
+
+        .btn-voice-toggle.off {
+            background: #e74c3c;
+        }
+
+        .btn-emergency {
+            background: #e74c3c;
+            color: white;
+            grid-column: 1 / -1;
+        }
+
+        .btn-refresh {
+            background: #533483;
+            color: white;
+        }
+
+        .btn-status {
+            background: #16a085;
+            color: white;
+        }
+
+        .status-indicator {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            padding: 10px;
+            background: #0a2342;
+            flex-wrap: wrap;
+        }
+
+        .status-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: #2ecc71;
+            animation: pulse 2s infinite;
+        }
+
+        .voice-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: #e67e22;
+            animation: pulse 1s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.5; transform: scale(1.1); }
+        }
+
+        .loading-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.9);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            color: white;
+            z-index: 10;
+        }
+
+        .spinner {
+            width: 50px;
+            height: 50px;
+            border: 5px solid rgba(255, 255, 255, 0.3);
+            border-top-color: #e94560;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-bottom: 20px;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .info-bar {
+            display: flex;
+            justify-content: space-around;
+            padding: 15px;
+            background: #0a2342;
+            font-size: 0.9em;
+        }
+
+        .info-item {
+            text-align: center;
+        }
+
+        .info-label {
+            opacity: 0.7;
+            font-size: 0.8em;
+        }
+
+        .info-value {
+            font-weight: bold;
+            color: #e94560;
+            font-size: 1.1em;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🎯 VeeAssist</h1>
+            <p>AI Navigation + Emergency Alert System</p>
+        </div>
+
+        <div class="status-indicator">
+            <div class="status-dot"></div>
+            <span>Live Detection</span>
+            <div class="voice-dot"></div>
+            <span id="voice-status">Auto Voice ON</span>
+        </div>
+
+        <div class="video-container">
+            <div class="loading-overlay" id="loading">
+                <div class="spinner"></div>
+                <p>Connecting to camera...</p>
+            </div>
+            <img src="{{ url_for('video_feed') }}" 
+                 id="video-feed" 
+                 alt="Video Feed"
+                 onload="hideLoading()">
+        </div>
+
+        <div class="narration-box">
+            <div class="narration-text" id="narration">
+                Initializing navigation system...
+            </div>
+        </div>
+
+        <div class="info-bar">
+            <div class="info-item">
+                <div class="info-label">Objects</div>
+                <div class="info-value" id="object-count">0</div>
+            </div>
+            <div class="info-item">
+                <div class="info-label">Status</div>
+                <div class="info-value" id="status">Active</div>
+            </div>
+            <div class="info-item">
+                <div class="info-label">Audio</div>
+                <div class="info-value" id="audio-status">Ready</div>
+            </div>
+        </div>
+
+        <div class="controls">
+            <button class="btn btn-voice-toggle" id="voice-toggle" onclick="toggleAutoVoice()">
+                🔊 AUTO VOICE: ON
+            </button>
+            <button class="btn btn-emergency" onclick="resetEmergency()">
+                🚨 Reset Emergency
+            </button>
+            <button class="btn btn-refresh" onclick="location.reload()">
+                🔄 Refresh
+            </button>
+            <button class="btn btn-status" onclick="checkStatus()">
+                📊 Status
+            </button>
+        </div>
+    </div>
+
+    <script>
+        let currentNarration = "";
+        let speechSynthesis = window.speechSynthesis;
+        let autoSpeak = true;
+        let lastSpokenText = "";
+        let isSpeaking = false;
+
+        function hideLoading() {
+            document.getElementById('loading').style.display = 'none';
+        }
+
+        // Fetch narration every 1.5 seconds
+        setInterval(async () => {
+            try {
+                const response = await fetch('/narration');
+                const data = await response.json();
+                
+                currentNarration = data.text;
+                document.getElementById('narration').textContent = data.text;
+                document.getElementById('object-count').textContent = data.count || 0;
+                
+                // Auto-speak if enabled and text changed
+                if (autoSpeak && currentNarration !== lastSpokenText && 
+                    currentNarration !== "Initializing..." && !isSpeaking) {
+                    speakNarration(currentNarration);
+                    lastSpokenText = currentNarration;
+                }
+            } catch (error) {
+                console.error('Error fetching narration:', error);
+            }
+        }, 1500);
+
+        function speakNarration(text) {
+            if (!text || isSpeaking) return;
+            
+            speechSynthesis.cancel();
+            isSpeaking = true;
+            
+            const utterance = new SpeechSynthesisUtterance(text);
+            utterance.rate = 1.0;
+            utterance.pitch = 1.0;
+            utterance.volume = 1.0;
+            
+            document.getElementById('audio-status').textContent = 'Speaking';
+            
+            utterance.onend = () => {
+                document.getElementById('audio-status').textContent = 'Ready';
+                isSpeaking = false;
+            };
+            
+            utterance.onerror = () => {
+                document.getElementById('audio-status').textContent = 'Error';
+                isSpeaking = false;
+            };
+            
+            speechSynthesis.speak(utterance);
+        }
+
+        async function toggleAutoVoice() {
+            try {
+                const response = await fetch('/toggle_voice');
+                const data = await response.json();
+                autoSpeak = data.auto_speak;
+                
+                const btn = document.getElementById('voice-toggle');
+                const statusText = document.getElementById('voice-status');
+                
+                if (autoSpeak) {
+                    btn.textContent = '🔊 AUTO VOICE: ON';
+                    btn.classList.remove('off');
+                    statusText.textContent = 'Auto Voice ON';
+                } else {
+                    btn.textContent = '🔇 AUTO VOICE: OFF';
+                    btn.classList.add('off');
+                    statusText.textContent = 'Auto Voice OFF';
+                    speechSynthesis.cancel();
+                }
+            } catch (error) {
+                alert('Error toggling voice: ' + error.message);
+            }
+        }
+
+        async function resetEmergency() {
+            try {
+                const response = await fetch('/reset_emergency');
+                const data = await response.json();
+                if (data.status === 'reset') {
+                    alert('Emergency state reset successfully');
+                    location.reload();
+                }
+            } catch (error) {
+                alert('Error resetting emergency: ' + error.message);
+            }
+        }
+
+        async function checkStatus() {
+            try {
+                const response = await fetch('/status');
+                const data = await response.json();
+                alert(`Status: ${data.status}\nCamera: ${data.index}\nRotation: ${data.rotation}°\nAuto Voice: ${data.auto_speak ? 'ON' : 'OFF'}\nEmergency: ${data.emergency_active ? 'ACTIVE' : 'Standby'}`);
+            } catch (error) {
+                alert('Error: ' + error.message);
+            }
+        }
+
+        document.getElementById('video-feed').onerror = function() {
+            setTimeout(() => location.reload(), 3000);
+        };
+
+        function sendLocation() {
+    if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(function(position) {
+            fetch('/update_location', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({
+                    latitude: position.coords.latitude,
+                    longitude: position.coords.longitude
+                })
+            });
+        });
+    }
+}
+// Send location every 5 seconds
+setInterval(sendLocation, 5000);
+
+
+let lastSpeed = 0;
+window.addEventListener('devicemotion', (event) => {
+    const acc = event.accelerationIncludingGravity;
+    if(acc) {
+        let speed = Math.sqrt(acc.x*acc.x + acc.y*acc.y + acc.z*acc.z);
+        if(Math.abs(speed - lastSpeed) > 0.5){
+            fetch('/update_speed', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({speed: speed})
+            });
+            lastSpeed = speed;
+        }
+    }
+});
+    </script>
+</body>
+</html>
