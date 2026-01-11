@@ -21,8 +21,8 @@
 
 1. **Clone the repository**
 
-git clone https://github.com/your-username/veeassist.git
-cd veeassist
+git clone https://github.com/nikhitha-kv/v_assist.git
+cd v_assist
 
 
 2. **Create a virtual environment and activate it**
